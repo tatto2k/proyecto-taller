@@ -2,7 +2,6 @@ const express = require("express");
 const empleados = express.Router();
 const db = require("../config/database");
 
-// Agregar empleado
 empleados.post("/", async (req, res, next) => {
     const { emp_nombre, emp_apellidos, emp_telefono, emp_correo, emp_direccion } = req.body;
 
@@ -25,7 +24,6 @@ empleados.post("/", async (req, res, next) => {
     return res.status(400).json({ code: 400, message: "Campos incompletos" });
 });
 
-// Modificar empleado
 empleados.put("/:id", async (req, res, next) => {
     const { emp_nombre, emp_apellidos, emp_telefono, emp_correo, emp_direccion } = req.body;
 
@@ -48,7 +46,6 @@ empleados.put("/:id", async (req, res, next) => {
     return res.status(400).json({ code: 400, message: "Campos incompletos" });
 });
 
-// Eliminar empleado
 empleados.delete("/:id", async (req, res, next) => {
     const query = "DELETE FROM empleados WHERE emp_id = ?;";
     const rows = await db.query(query, [req.params.id]);
@@ -59,7 +56,6 @@ empleados.delete("/:id", async (req, res, next) => {
     return res.status(404).json({ code: 404, message: "Empleado no encontrado" });
 });
 
-// Consultar empleados (todos, o buscando por nombre con ?nombre=)
 empleados.get("/", async (req, res, next) => {
     const { nombre } = req.query;
     let rows;
