@@ -19,7 +19,6 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", index);
 app.use("/user", user);
 
-// Todo lo que esté debajo de esta línea requiere token
 app.use(auth);
 app.use("/empleados", empleados);
 
