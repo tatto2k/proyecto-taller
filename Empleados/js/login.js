@@ -1,24 +1,43 @@
-const API_URL = "http://localhost:3000";
+window.onload = init;
+
+function init() {
+    if(!localStorage.getItem("token")) {
+        document.querySelector('.btn-primary').addEventListener('click', login);
+    }
+    else {
+        window.location.href = "empleados.html";
+    }
+}
 
 function login() {
-    const mail = document.getElementById('input-mail').value;
-    const password = document.getElementById('input-password').value;
+    var mail = document.getElementById('input-mail').value;
+    var pass = document.getElementById('input-password').value;
 
-    axios.post(`${API_URL}/user/login`, {
-        user_mail: mail,
-        user_password: password
-    })
-    .then(res => {
-        console.log(res);
-        localStorage.setItem("token", res.data.message);
-        window.location.href = "empleados.html";
-    })
-    .catch(err => {
-        console.error(err);
-        if (err.response && err.response.data) {
-            alert("Usuario no registrado o contraseña incorrecta");
-        } else {
+    axios({
+        method: 'post',
+        url: 'http://localhost:3000/user/login',
+        data: {
+            user_mail: mail,
+            user_password: pass
+        }
+    }).then(function(res){
+        if(res.data.code === 200){
+            localStorage.setItem("token", res.data.message);
+            window.location.href = "empleados.html";
+        }
+        else {
+            alert("Usuario y/o contraseña incorrectos")
+        }
+    }).catch(function(err){
+        console.log(err);
+        if (err.response && err.response.data && err.response.data.message) {
+            alert(err.response.data.message);
+        }
+        else if (!err.response) {
             alert("Error de conexión con el servidor");
         }
-    });
+        else {
+            alert("Error en el servidor");
+        }
+    })
 }

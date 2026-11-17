@@ -1,161 +1,188 @@
-const API_URL = "http://localhost:3000";
-const token = localStorage.getItem("token");
+window.onload = init;
+var headers = {};
+var url = "http://localhost:3000";
+var idModificar = null;
 
-const headers = {
-    'Authorization': `Bearer ${token}`
-};
+function init() {
+    if (localStorage.getItem("token")) {
+        headers = {
+            headers: {
+                'Authorization': "Bearer " + localStorage.getItem("token")
+            }
+        }
+        loadEmpleados();
+    }
+    else {
+        alert("Por favor, inicia sesión primero.");
+        window.location.href = "login.html";
+    }
+}
 
-let idModificar = null;
-
-function mostrarError(err, mensajePorDefecto) {
-    console.error(err);
+function mostrarError(err, mensaje) {
+    console.log(err);
 
     if (err.response && err.response.status === 401) {
         localStorage.removeItem("token");
         alert("Tu sesión no es válida. Inicia sesión de nuevo.");
-        window.location.replace("login.html");
-        return;
+        window.location.href = "login.html";
     }
-
-    if (err.response && err.response.data && err.response.data.message) {
+    else if (err.response && err.response.data && err.response.data.message) {
         alert(err.response.data.message);
-    } else if (!err.response) {
+    }
+    else if (!err.response) {
         alert("Error de conexión con el servidor");
-    } else {
-        alert(mensajePorDefecto);
+    }
+    else {
+        alert(mensaje);
     }
 }
 
-function cargarEmpleados() {
-    axios.get(`${API_URL}/empleados`, { headers })
-    .then(res => {
-        const empleados = Array.isArray(res.data) ? res.data : res.data.message;
-        dibujarTabla(empleados);
+function loadEmpleados() {
+    axios.get(url + "/empleados", headers)
+    .then(function(res) {
+        console.log(res);
+        displayEmpleados(res.data.message);
+    }).catch(function(err) {
+        mostrarError(err, "Error al cargar los empleados");
     })
-    .catch(err => mostrarError(err, "Error al cargar los empleados"));
 }
 
-function dibujarTabla(empleados) {
-    const tbody = document.getElementById('tabla-empleados');
-    tbody.innerHTML = '';
+function crearFila(emp) {
+    var fila = document.createElement("tr");
+    var datos = [emp.emp_id, emp.emp_nombre, emp.emp_apellidos, emp.emp_telefono, emp.emp_correo, emp.emp_direccion];
 
-    empleados.forEach(emp => {
-        const fila = document.createElement('tr');
+    for (var i = 0; i < datos.length; i++) {
+        var celda = document.createElement("td");
+        celda.textContent = datos[i];
+        fila.appendChild(celda);
+    }
 
+    var acciones = document.createElement("td");
 
-        [emp.emp_id, emp.emp_nombre, emp.emp_apellidos, emp.emp_telefono, emp.emp_correo, emp.emp_direccion]
-        .forEach(valor => {
-            const celda = document.createElement('td');
-            celda.textContent = valor;
-            fila.appendChild(celda);
-        });
-
-        const celdaAcciones = document.createElement('td');
-
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn btn-warning btn-sm me-1';
-        btnEditar.textContent = 'Editar';
-        btnEditar.addEventListener('click', () => cargarParaEditar(emp));
-
-        const btnEliminar = document.createElement('button');
-        btnEliminar.className = 'btn btn-danger btn-sm';
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.addEventListener('click', () => eliminarEmpleado(emp.emp_id));
-
-        celdaAcciones.appendChild(btnEditar);
-        celdaAcciones.appendChild(btnEliminar);
-        fila.appendChild(celdaAcciones);
-
-        tbody.appendChild(fila);
+    var btnEditar = document.createElement("button");
+    btnEditar.className = "btn btn-warning btn-sm me-1";
+    btnEditar.textContent = "Editar";
+    btnEditar.addEventListener("click", function() {
+        cargarParaEditar(emp);
     });
+
+    var btnEliminar = document.createElement("button");
+    btnEliminar.className = "btn btn-danger btn-sm";
+    btnEliminar.textContent = "Eliminar";
+    btnEliminar.addEventListener("click", function() {
+        eliminarEmpleado(emp.emp_id);
+    });
+
+    acciones.appendChild(btnEditar);
+    acciones.appendChild(btnEliminar);
+    fila.appendChild(acciones);
+
+    return fila;
+}
+
+function displayEmpleados(empleados) {
+    var tbody = document.getElementById("tabla-empleados");
+    tbody.innerHTML = "";
+
+    for (var i = 0; i < empleados.length; i++) {
+        tbody.appendChild(crearFila(empleados[i]));
+    }
 }
 
 function agregarEmpleado() {
-    const datos = {
-        emp_nombre: document.getElementById('nombre').value,
-        emp_apellidos: document.getElementById('apellidos').value,
-        emp_telefono: document.getElementById('telefono').value,
-        emp_correo: document.getElementById('correo').value,
-        emp_direccion: document.getElementById('direccion').value
+    var datos = {
+        emp_nombre: document.getElementById("nombre").value,
+        emp_apellidos: document.getElementById("apellidos").value,
+        emp_telefono: document.getElementById("telefono").value,
+        emp_correo: document.getElementById("correo").value,
+        emp_direccion: document.getElementById("direccion").value
     };
 
     if (idModificar === null) {
-        axios.post(`${API_URL}/empleados`, datos, { headers })
-        .then(res => {
+        axios.post(url + "/empleados", datos, headers)
+        .then(function(res) {
             alert("Empleado registrado con éxito");
             limpiarCampos();
-            cargarEmpleados();
+            loadEmpleados();
+        }).catch(function(err) {
+            mostrarError(err, "Error al registrar empleado");
         })
-        .catch(err => mostrarError(err, "Error al registrar empleado"));
-    } else {
-        axios.put(`${API_URL}/empleados/${idModificar}`, datos, { headers })
-        .then(res => {
+    }
+    else {
+        axios.put(url + "/empleados/" + idModificar, datos, headers)
+        .then(function(res) {
             alert("Empleado modificado con éxito");
             idModificar = null;
-            document.getElementById('btn-guardar').textContent = "Guardar Empleado";
+            document.getElementById("btn-guardar").textContent = "Guardar Empleado";
             limpiarCampos();
-            cargarEmpleados();
+            loadEmpleados();
+        }).catch(function(err) {
+            mostrarError(err, "Error al modificar empleado");
         })
-        .catch(err => mostrarError(err, "Error al modificar empleado"));
     }
 }
 
 function cargarParaEditar(emp) {
     idModificar = emp.emp_id;
-    document.getElementById('nombre').value = emp.emp_nombre;
-    document.getElementById('apellidos').value = emp.emp_apellidos;
-    document.getElementById('telefono').value = emp.emp_telefono;
-    document.getElementById('correo').value = emp.emp_correo;
-    document.getElementById('direccion').value = emp.emp_direccion;
+    document.getElementById("nombre").value = emp.emp_nombre;
+    document.getElementById("apellidos").value = emp.emp_apellidos;
+    document.getElementById("telefono").value = emp.emp_telefono;
+    document.getElementById("correo").value = emp.emp_correo;
+    document.getElementById("direccion").value = emp.emp_direccion;
 
-    document.getElementById('btn-guardar').textContent = "Actualizar Empleado";
+    document.getElementById("btn-guardar").textContent = "Actualizar Empleado";
 }
 
 function eliminarEmpleado(id) {
     if (confirm("¿Estás seguro de eliminar este empleado?")) {
-        axios.delete(`${API_URL}/empleados/${id}`, { headers })
-        .then(res => {
+        axios.delete(url + "/empleados/" + id, headers)
+        .then(function(res) {
             alert("Empleado eliminado");
-            cargarEmpleados();
+            loadEmpleados();
+        }).catch(function(err) {
+            mostrarError(err, "Error al eliminar");
         })
-        .catch(err => mostrarError(err, "Error al eliminar"));
     }
 }
 
 function buscarEmpleado() {
-    const texto = document.getElementById('input-buscar').value;
+    var texto = document.getElementById("input-buscar").value.trim();
 
-    if (texto.trim() === "") {
-        cargarEmpleados();
+    if (texto === "") {
+        loadEmpleados();
         return;
     }
 
+    if (/^\d+$/.test(texto)) {
+        axios.get(url + "/empleados", headers)
+        .then(function(res) {
+            var filtrados = res.data.message.filter(function(emp) {
+                return String(emp.emp_id) === texto;
+            });
+            displayEmpleados(filtrados);
+        }).catch(function(err) {
+            mostrarError(err, "Error al buscar empleados");
+        })
+        return;
+    }
 
-    axios.get(`${API_URL}/empleados`, { headers, params: { nombre: texto } })
-    .then(res => {
-        const empleados = Array.isArray(res.data) ? res.data : res.data.message;
-        dibujarTabla(empleados);
+    axios.get(url + "/empleados/name/" + encodeURIComponent(texto), headers)
+    .then(function(res) {
+        displayEmpleados(res.data.message);
+    }).catch(function(err) {
+        mostrarError(err, "Error al buscar empleados");
     })
-    .catch(err => mostrarError(err, "Error al buscar empleados"));
 }
 
 function limpiarCampos() {
-    document.getElementById('nombre').value = '';
-    document.getElementById('apellidos').value = '';
-    document.getElementById('telefono').value = '';
-    document.getElementById('correo').value = '';
-    document.getElementById('direccion').value = '';
+    document.getElementById("nombre").value = "";
+    document.getElementById("apellidos").value = "";
+    document.getElementById("telefono").value = "";
+    document.getElementById("correo").value = "";
+    document.getElementById("direccion").value = "";
 }
 
 function cerrarSesion() {
     localStorage.removeItem("token");
-    window.location.replace("login.html");
-}
-
-
-if (!token) {
-    alert("Por favor, inicia sesión primero.");
-    window.location.replace("login.html");
-} else {
-    cargarEmpleados();
+    window.location.href = "login.html";
 }
